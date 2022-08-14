@@ -1,79 +1,90 @@
-import { useEffect, useState } from "react";
-import { useDispatch, useSelector } from "react-redux";
-import { useNavigate, useParams } from "react-router-dom";
-import { addTask, editTask } from "../features/tasks/tasksSlice";
+import React from 'react';
+import axios from 'axios';
+import { Link } from "react-router-dom";
 
-//const idN = task.id;
-
-function TaskForm() {
-  const [task, setTask] = useState({
-    title: "",
+export default class CreateTask extends React.Component {
+  state = {
+    id: "",
+    tile: "",
     description: "",
-  });
-  const dispatch = useDispatch();
-  const navigate = useNavigate();
-  const params = useParams();
-  const tasks = useSelector((state) => state.tasks);
+  }
 
-  const handleChange = (e) => {
-    setTask({
-      ...task,
-      [e.target.name]: e.target.value,
-    });
-  };
+  componentDidMount() {
+    let id = window.location.pathname
+    let id_split = id.split("/")[2]
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
+    if (window.location.pathname.includes('edit-task')) {
+      this.getTaskById(id_split)
+    }
+  }
 
-    if (params.id) {
-      dispatch(editTask({ ...task, id: params.id }));
-    } else {
-      dispatch(
-        addTask({
-          ...task,
-          id: 3,
-        })
-      );
+  getTaskById(value) {
+    const url = "http://localhost:8080/api/tasks/" + value
+
+    axios.get(url)
+      .then(res => {
+        this.setState({ title: res.data.data.title });
+        this.setState({ id: value });
+        this.setState({ description: res.data.data.description });
+      })
+  }
+
+  handleSubmit = event => {
+    event.preventDefault();
+
+    const body = {
+      title: this.state.title,
+      description: this.state.description,
     }
 
-    navigate("/");
-  };
+    if (window.location.pathname.includes('edit-task')) {
+      const url = "http://localhost:8080/api/tasks/" + this.state.id
+      axios.put(url, body)
+      .then(res => {
+        window.history.go(-1)
+      })
+    }else{
+      axios.post("http://localhost:8080/api/tasks/", body)
+      .then(res => {
+        window.history.go(-1)
+      })
+    }   
+  }
 
-  useEffect(() => {
-    if (params.id) {
-      setTask(tasks.find((task) => task.id === params.id));
-    }
-  }, [params, tasks]);
+  handleChangeTitle = event => {
+    this.setState({ title: event.target.value });
+  }
 
-  return (
-    <form onSubmit={handleSubmit} className="bg-zinc-800 max-w-md p-4 rounded-3">
-      <label className="block text-lg pb-2">Tarea:</label>
-      <input
-        type="text"
-        name="title"
-        onChange={handleChange}
-        value={task.title}
-        className="w-full p-2 rounded-md bg-zinc-600 mb-2"
-        placeholder="Tarea"
-        autoFocus
-      />
-      <label className="pb-2">
-        Descripción:
-      </ label>
+  handleChangeDescription = event => {
+    this.setState({ description: event.target.value });
+  }
+
+  render() {
+    return (
+      <form onSubmit={this.handleSubmit} className="bg-zinc-800 max-w-md p-4 rounded-3">
+        <label className="block text-lg pb-2">Tarea:</label>
+        <input
+          type="text"
+          name="title"
+          onChange={this.handleChangeTitle}
+          className="w-full p-2 rounded-md bg-zinc-600 mb-2"
+          placeholder="Tarea"
+          value={this.state.title}
+          autoFocus
+        />
+        <label className="pb-2">
+          Descripción:
+        </ label>
         <textarea
           type="text"
           name="description"
-          onChange={handleChange}
-          value={task.description}
+          value={this.state.description}
+          onChange={this.handleChangeDescription}
           className="w-full p-2 rounded-md bg-zinc-600 mb-2"
           placeholder="¿Qué hay que hacer?"
         />
-      <button type="submit" className="bg-indigo-600 px-5 py-2 rounded-5">Enviar</button>
-    </form>
-  );
+        <button type="submit" className="bg-indigo-600 px-5 py-2 rounded-5">Enviar</button>
+      </form>
+    );
+  }
 }
-
-
-;
-
-export default TaskForm;
